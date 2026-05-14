@@ -135,4 +135,35 @@ export class PaymentsService {
       include: { user: { select: { id: true, name: true, email: true } } },
     });
   }
+
+  async getPaymentStats() {
+    const [totalPayments, completedPayments, pendingPayments, totalRevenue] =
+      await Promise.all([
+        this.prisma.oneTimePayment.count(),
+        this.prisma.oneTimePayment.count({ where: { status: 'COMPLETED' } }),
+        this.prisma.oneTimePayment.count({ where: { status: 'PENDING' } }),
+        this.prisma.oneTimePayment.aggregate({
+          where: { status: 'COMPLETED' },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    return {
+      totalPayments,
+      completedPayments,
+      pendingPayments,
+      totalRevenue: totalRevenue._sum.amount ?? 0,
+    };
+  }
+
+  async getUserPurchases() {
+    return this.prisma.oneTimePayment.findMany({
+      where: { status: 'COMPLETED' },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        exam: { select: { id: true, title: true, type: true, priceUzs: true } },
+      },
+      orderBy: { reviewedAt: 'desc' },
+    });
+  }
 }

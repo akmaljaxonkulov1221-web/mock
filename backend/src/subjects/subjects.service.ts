@@ -11,16 +11,22 @@ export class SubjectsService {
     description?: string;
     icon?: string;
     order?: number;
+    categoryId?: string;
   }) {
     return this.prisma.subject.create({ data: dto });
   }
 
-  async findAll(includeInactive = false) {
-    const where = includeInactive ? {} : { isActive: true };
+  async findAll(includeInactive = false, categoryId?: string) {
+    const where: Record<string, unknown> = {};
+    if (!includeInactive) where.isActive = true;
+    if (categoryId) where.categoryId = categoryId;
     return this.prisma.subject.findMany({
       where,
       orderBy: { order: 'asc' },
-      include: { _count: { select: { exams: true } } },
+      include: {
+        category: true,
+        _count: { select: { exams: true, questionBank: true } },
+      },
     });
   }
 
@@ -28,10 +34,12 @@ export class SubjectsService {
     const subject = await this.prisma.subject.findUnique({
       where: { id },
       include: {
+        category: true,
         exams: {
           orderBy: { createdAt: 'desc' },
           include: { _count: { select: { questions: true } } },
         },
+        _count: { select: { questionBank: true } },
       },
     });
     if (!subject) throw new NotFoundException('Fan topilmadi');
@@ -47,6 +55,7 @@ export class SubjectsService {
       icon?: string;
       isActive?: boolean;
       order?: number;
+      categoryId?: string;
     },
   ) {
     return this.prisma.subject.update({ where: { id }, data: dto });

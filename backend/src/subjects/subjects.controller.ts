@@ -19,8 +19,11 @@ export class SubjectsController {
   constructor(private subjectsService: SubjectsService) {}
 
   @Get()
-  findAll(@Query('includeInactive') includeInactive?: string) {
-    return this.subjectsService.findAll(includeInactive === 'true');
+  findAll(
+    @Query('includeInactive') includeInactive?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.subjectsService.findAll(includeInactive === 'true', categoryId);
   }
 
   @Get(':id')
@@ -39,6 +42,7 @@ export class SubjectsController {
       description?: string;
       icon?: string;
       order?: number;
+      categoryId?: string;
     },
   ) {
     return this.subjectsService.create(dto);
@@ -57,6 +61,7 @@ export class SubjectsController {
       icon?: string;
       isActive?: boolean;
       order?: number;
+      categoryId?: string;
     },
   ) {
     return this.subjectsService.update(id, dto);

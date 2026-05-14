@@ -85,4 +85,18 @@ export class PaymentsController {
   getAllSubscriptions() {
     return this.paymentsService.getAllSubscriptions();
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('stats')
+  getPaymentStats() {
+    return this.paymentsService.getPaymentStats();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('purchases')
+  getUserPurchases() {
+    return this.paymentsService.getUserPurchases();
+  }
 }

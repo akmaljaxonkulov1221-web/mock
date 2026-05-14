@@ -22,6 +22,7 @@ Thumbs.db
 # Build output
 dist/
 build/
+.next/
 
 # Dependency lock debug
 package-lock.json

@@ -16,6 +16,10 @@ import { ManualPaymentsModule } from './manual-payments/manual-payments.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { CategoriesModule } from './categories/categories.module';
+import { QuestionBankModule } from './question-bank/question-bank.module';
+import { WalletsModule } from './wallets/wallets.module';
+import { DtmTestsModule } from './dtm-tests/dtm-tests.module';
 
 @Module({
   imports: [
@@ -35,6 +39,10 @@ import { SubjectsModule } from './subjects/subjects.module';
     CentersModule,
     SettingsModule,
     SubjectsModule,
+    CategoriesModule,
+    QuestionBankModule,
+    WalletsModule,
+    DtmTestsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
