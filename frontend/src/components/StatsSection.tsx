@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { Users, Brain, Award, Clock } from 'lucide-react';
 
 const stats = [
-  { icon: Users, value: '10,000+', label: 'Active Students' },
-  { icon: Brain, value: '50,000+', label: 'AI Evaluations' },
-  { icon: Award, value: '6', label: 'CEFR Levels' },
-  { icon: Clock, value: '500+', label: 'Mock Exams' },
+  { icon: Users, value: '10,000+', label: 'Faol foydalanuvchilar' },
+  { icon: Brain, value: '50,000+', label: 'AI baholashlar' },
+  { icon: Award, value: '10+', label: 'Fanlar' },
+  { icon: Clock, value: '500+', label: 'Mock testlar' },
 ];
 
 export default function StatsSection() {

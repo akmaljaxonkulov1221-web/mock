@@ -14,6 +14,8 @@ import { StorageModule } from './storage/storage.module';
 import { AuditModule } from './audit/audit.module';
 import { ManualPaymentsModule } from './manual-payments/manual-payments.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { SettingsModule } from './settings/settings.module';
+import { SubjectsModule } from './subjects/subjects.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { UploadsModule } from './uploads/uploads.module';
     UploadsModule,
     NotificationsModule,
     CentersModule,
+    SettingsModule,
+    SubjectsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

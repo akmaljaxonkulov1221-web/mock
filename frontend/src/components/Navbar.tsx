@@ -3,14 +3,20 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdown, setDropdown] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -32,11 +38,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
-            </div>
+            {settings.siteLogo ? (
+              <img src={settings.siteLogo} alt={settings.siteName} className="w-8 h-8 rounded-lg object-cover" />
+            ) : (
+              <div className="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">{settings.siteName.charAt(0)}</span>
+              </div>
+            )}
             <span className="text-xl font-bold">
-              <span className="gradient-text">Mock</span>CEFR
+              <span className="gradient-text">{settings.siteName}</span>
             </span>
           </Link>
 

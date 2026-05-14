@@ -21,6 +21,15 @@ enum ExamType {
   SPEAKING
   MOCK_CEFR
   MOCK_IELTS
+  MOCK_DTM
+  CUSTOM
+}
+
+enum OneTimePaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 enum QuestionType {
@@ -92,6 +101,7 @@ model User {
   auditLogsAsActor        AuditLog[]           @relation("AuditActor")
   auditLogsAsSubject      AuditLog[]           @relation("AuditSubject")
   aiUsageLogs             AiUsageLog[]
+  oneTimePayments         OneTimePayment[]  @relation("UserOneTimePayments")
 
   @@index([role, createdAt])
   @@index([centerId])
@@ -169,13 +179,14 @@ model ExamEntitlement {
   id              String    @id @default(uuid())
   userId          String
   examId          String
-  manualPaymentId String   @unique
+  manualPaymentId String?  @unique
+  paymentSource   String   @default("manual")
   consumedAt      DateTime?
   createdAt       DateTime  @default(now()) @map("created_at")
 
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exam    Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
-  payment ManualExamPayment @relation(fields: [manualPaymentId], references: [id], onDelete: Cascade)
+  payment ManualExamPayment? @relation(fields: [manualPaymentId], references: [id], onDelete: Cascade)
 
   @@index([userId, examId, consumedAt])
   @@map("exam_entitlements")
@@ -243,6 +254,58 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameUz      String?
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  exams Exam[]
+
+  @@index([isActive, order])
+  @@map("subjects")
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  type      String   @default("string")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model OneTimePayment {
+  id              String               @id @default(uuid())
+  userId          String
+  examId          String
+  amount          Int
+  currency        String               @default("UZS")
+  status          OneTimePaymentStatus @default(PENDING)
+  paymentMethod   String?
+  transactionId   String?
+  screenshotKey   String?
+  reviewerId      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  user User @relation("UserOneTimePayments", fields: [userId], references: [id], onDelete: Cascade)
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([userId, examId])
+  @@index([status, createdAt])
+  @@map("one_time_payments")
+}
+
 model Exam {
   id              String   @id @default(uuid())
   title           String
@@ -251,6 +314,7 @@ model Exam {
   level           String?
   centerId        String?
   createdBy       String
+  subjectId       String?
   requiresPayment Boolean  @default(true)
   priceUzs        Int?
   paymentInstructions String? @db.Text
@@ -258,13 +322,16 @@ model Exam {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   creator            User                 @relation(fields: [createdBy], references: [id])
+  subject            Subject?             @relation(fields: [subjectId], references: [id])
   questions          Question[]
   results            Result[]
   manualExamPayments ManualExamPayment[]
   entitlements       ExamEntitlement[]
+  oneTimePayments    OneTimePayment[]
 
   @@index([type, createdAt])
   @@index([createdBy])
+  @@index([subjectId])
   @@map("exams")
 }
 

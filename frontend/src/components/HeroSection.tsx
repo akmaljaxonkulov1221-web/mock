@@ -3,8 +3,10 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Brain, Shield } from 'lucide-react';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export default function HeroSection() {
+  const { settings } = useSettingsStore();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0f172a]">
       <div className="absolute inset-0 bg-gradient-to-br from-primary-900/20 via-transparent to-accent-900/20" />
@@ -25,12 +27,12 @@ export default function HeroSection() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            Master Your English with{' '}
-            <span className="gradient-text">AI</span>
+            {settings.siteName} bilan{' '}
+            <span className="gradient-text">AI</span> orqali tayyorlaning
           </h1>
 
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
-            Practice CEFR and IELTS exams with AI-powered speaking, writing, reading, and listening evaluations. Get instant feedback and track your progress.
+            {settings.siteDescription || 'AI yordamida CEFR, IELTS va boshqa imtihonlarga tayyorlaning. Speaking, Writing, Reading, Listening — hammasi AI bilan.'}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

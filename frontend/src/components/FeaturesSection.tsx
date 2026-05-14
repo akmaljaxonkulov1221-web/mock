@@ -1,15 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Mic, PenLine, BookOpen, Headphones, BarChart3, Route } from 'lucide-react';
+import { Mic, PenLine, BookOpen, Headphones, BarChart3, Route, GraduationCap } from 'lucide-react';
 
 const features = [
-  { icon: Mic, title: 'AI Speaking', desc: 'Speak and get instant feedback on pronunciation, fluency, and grammar with AI evaluation.' },
-  { icon: PenLine, title: 'AI Writing', desc: 'Write essays and receive detailed analysis on grammar, vocabulary, and coherence.' },
-  { icon: BookOpen, title: 'Mock Reading', desc: 'Practice reading comprehension with authentic CEFR and IELTS passages.' },
-  { icon: Headphones, title: 'Mock Listening', desc: 'Train your listening skills with audio exercises and timed tests.' },
-  { icon: BarChart3, title: 'Analytics', desc: 'Track your progress with detailed charts, heatmaps, and performance insights.' },
-  { icon: Route, title: 'AI Roadmap', desc: 'Get a personalized study plan based on your weak areas and goals.' },
+  { icon: Mic, title: 'AI Speaking', desc: 'Talaffuz, ravonlik va grammatikani AI baholashi bilan gapiring va tezkor fikr-mulohaza oling.' },
+  { icon: PenLine, title: 'AI Writing', desc: 'Insho yozing va grammatika, lug\'at va izchillik bo\'yicha batafsil tahlil oling.' },
+  { icon: BookOpen, title: 'Mock Reading', desc: 'CEFR va IELTS o\'qish tushunish mashqlari bilan mashq qiling.' },
+  { icon: Headphones, title: 'Mock Listening', desc: 'Audio mashqlar va vaqt belgilangan testlar bilan tinglash qobiliyatini rivojlantiring.' },
+  { icon: BarChart3, title: 'Analitika', desc: 'Batafsil grafiklar va natijalar tahlili bilan rivojlanishingizni kuzating.' },
+  { icon: GraduationCap, title: 'Universal Testlar', desc: 'IELTS, CEFR, DTM va boshqa fanlar bo\'yicha mock testlar. Matematika, Tarix, Fizika va h.k.' },
+  { icon: Route, title: 'AI Roadmap', desc: 'Zaif tomonlaringiz asosida shaxsiy o\'quv rejasini oling.' },
 ];
 
 export default function FeaturesSection() {
@@ -24,10 +25,10 @@ export default function FeaturesSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl font-bold text-white mb-4">
-            Everything You Need to <span className="gradient-text">Succeed</span>
+            Muvaffaqiyat uchun <span className="gradient-text">kerakli vositalar</span>
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            AI-powered tools and real mock exams to help you achieve your target CEFR or IELTS score.
+            AI bilan mock imtihonlar va testlar — CEFR, IELTS, DTM va boshqa fanlar bo&apos;yicha tayyorlaning.
           </p>
         </motion.div>
 
