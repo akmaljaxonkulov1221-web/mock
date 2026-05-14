@@ -71,21 +71,25 @@ export class PaymentsService {
       throw new ForbiddenException('Bu to\'lov allaqachon ko\'rib chiqilgan');
     }
 
-    const updated = await this.prisma.oneTimePayment.update({
-      where: { id: paymentId },
-      data: {
-        status: 'COMPLETED',
-        reviewerId,
-        reviewedAt: new Date(),
-      },
-    });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.oneTimePayment.update({
+        where: { id: paymentId },
+        data: {
+          status: 'COMPLETED',
+          reviewerId,
+          reviewedAt: new Date(),
+        },
+      });
 
-    await this.prisma.examEntitlement.create({
-      data: {
-        userId: payment.userId,
-        examId: payment.examId,
-        paymentSource: 'one_time',
-      },
+      await tx.examEntitlement.create({
+        data: {
+          userId: payment.userId,
+          examId: payment.examId,
+          paymentSource: 'one_time',
+        },
+      });
+
+      return p;
     });
 
     return updated;
