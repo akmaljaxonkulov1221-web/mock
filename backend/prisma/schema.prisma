@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  CENTER_ADMIN
+  SUPER_ADMIN
+}
+
+enum ExamType {
+  READING
+  LISTENING
+  WRITING
+  SPEAKING
+  MOCK_CEFR
+  MOCK_IELTS
+}
+
+enum QuestionType {
+  MCQ
+  FILL_BLANKS
+  MATCHING
+  ESSAY
+  SPEAKING
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+enum NotificationType {
+  EXAM_REMINDER
+  RESULT_READY
+  PROCTOR_WARNING
+  SYSTEM
+  PAYMENT_UPDATE
+}
+
+enum ManualPaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String?
+  googleId      String?  @unique
+  name          String
+  role          Role     @default(STUDENT)
+  avatar        String?
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  exams                 Exam[]
+  results               Result[]
+  speakingRecords       SpeakingRecord[]
+  writingSubmissions    WritingSubmission[]
+  subscription          Subscription?
+  analytics             Analytics?
+  achievements          Achievement[]
+  xp                    Int      @default(0)
+  streak                Int      @default(0)
+  centerId              String?
+  teacherId             String?
+
+  center                  Center?              @relation(fields: [centerId], references: [id])
+  notifications           Notification[]
+  proctorLogs             ProctorLog[]
+  aiReports               AiReport[]
+  manualExamPayments      ManualExamPayment[]  @relation("StudentManualPayments")
+  reviewedManualPayments  ManualExamPayment[]  @relation("ManualPaymentReviewer")
+  examEntitlements        ExamEntitlement[]
+  auditLogsAsActor        AuditLog[]           @relation("AuditActor")
+  auditLogsAsSubject      AuditLog[]           @relation("AuditSubject")
+  aiUsageLogs             AiUsageLog[]
+
+  @@index([role, createdAt])
+  @@index([centerId])
+  @@map("users")
+}
+
+model Center {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("centers")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+model ProctorLog {
+  id        String   @id @default(uuid())
+  userId    String
+  examId    String?
+  eventType String
+  detail    Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, examId, createdAt])
+  @@index([examId, eventType])
+  @@map("proctor_logs")
+}
+
+/// Manual bank transfer / receipt — admin approves to unlock one exam attempt.
+model ManualExamPayment {
+  id              String              @id @default(uuid())
+  userId          String
+  examId          String
+  amountNote      String?
+  currency        String              @default("UZS")
+  screenshotKey   String
+  status          ManualPaymentStatus @default(PENDING)
+  reviewerId      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  user       User              @relation("StudentManualPayments", fields: [userId], references: [id], onDelete: Cascade)
+  exam       Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  reviewer   User?             @relation("ManualPaymentReviewer", fields: [reviewerId], references: [id])
+  entitlement ExamEntitlement?
+
+  @@index([status, createdAt])
+  @@index([userId, examId])
+  @@map("manual_exam_payments")
+}
+
+/// One approved payment grants a single exam sitting until submit consumes it.
+model ExamEntitlement {
+  id              String    @id @default(uuid())
+  userId          String
+  examId          String
+  manualPaymentId String   @unique
+  consumedAt      DateTime?
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam    Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  payment ManualExamPayment @relation(fields: [manualPaymentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, examId, consumedAt])
+  @@map("exam_entitlements")
+}
+
+model AiReport {
+  id         String   @id @default(uuid())
+  userId     String
+  kind       String
+  model      String?
+  tokensUsed Int?
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, createdAt])
+  @@map("ai_reports")
+}
+
+model AiUsageLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  endpoint     String
+  model        String
+  inputTokens  Int?
+  outputTokens Int?
+  latencyMs    Int?
+  success      Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_usage_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  user  User? @relation("AuditSubject", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([resource, resourceId])
+  @@map("audit_logs")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
+model Exam {
+  id              String   @id @default(uuid())
+  title           String
+  type            ExamType
+  duration        Int
+  level           String?
+  centerId        String?
+  createdBy       String
+  requiresPayment Boolean  @default(true)
+  priceUzs        Int?
+  paymentInstructions String? @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  creator            User                 @relation(fields: [createdBy], references: [id])
+  questions          Question[]
+  results            Result[]
+  manualExamPayments ManualExamPayment[]
+  entitlements       ExamEntitlement[]
+
+  @@index([type, createdAt])
+  @@index([createdBy])
+  @@map("exams")
+}
+
+model Question {
+  id       String       @id @default(uuid())
+  examId   String
+  question String
+  type     QuestionType
+  options  Json?
+  answer   String?
+  order    Int          @default(0)
+  passage  String?
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId, order])
+  @@map("questions")
+}
+
+model Result {
+  id              String    @id @default(uuid())
+  userId          String
+  examId          String
+  score           Float     @default(0)
+  cefrLevel       String?
+  answers         Json?
+  integrityScore  Float?
+  integrityReport Json?
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  exam Exam @relation(fields: [examId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([examId, createdAt])
+  @@index([integrityScore])
+  @@map("results")
+}
+
+model SpeakingRecord {
+  id                     String   @id @default(uuid())
+  userId                 String
+  audioUrl               String?
+  audioStorageKey        String?
+  transcript             String?
+  sttProvider            String?
+  pauseMetrics           Json?
+  segmentMetadata        Json?
+  fluencyScore           Float?
+  grammarScore           Float?
+  pronunciationScore     Float?
+  overallScore           Float?
+  estimatedSpeakingCefr  String?
+  pronunciationAnalysis  Json?
+  fluencyAnalysis        Json?
+  feedback               String?  @db.Text
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([estimatedSpeakingCefr])
+  @@map("speaking_records")
+}
+
+model WritingSubmission {
+  id               String   @id @default(uuid())
+  userId           String
+  essay            String   @db.Text
+  wordCount        Int?
+  aiFeedback       String?  @db.Text
+  grammarScore     Float?
+  vocabScore       Float?
+  coherenceScore   Float?
+  estimatedLevel   String?
+  grammarAnalysis  Json?
+  vocabularyAnalysis Json?
+  coherenceAnalysis Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("writing_submissions")
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String             @unique
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(PENDING)
+  expiresAt DateTime?
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([plan, status])
+  @@map("subscriptions")
+}
+
+model Analytics {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  studyTime     Int      @default(0)
+  weakSkills    Json?
+  progressScore Float    @default(0)
+  totalExams    Int      @default(0)
+  avgScore      Float    @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("analytics")
+}
+
+model Achievement {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  icon      String?
+  xpReward  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("achievements")
+}
