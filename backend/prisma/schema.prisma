@@ -21,6 +21,15 @@ enum ExamType {
   SPEAKING
   MOCK_CEFR
   MOCK_IELTS
+  MOCK_DTM
+  CUSTOM
+}
+
+enum OneTimePaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 enum QuestionType {
@@ -58,6 +67,18 @@ enum ManualPaymentStatus {
   REJECTED
 }
 
+enum WalletTransactionType {
+  TOP_UP
+  PURCHASE
+  REFUND
+}
+
+enum DtmSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
@@ -92,6 +113,10 @@ model User {
   auditLogsAsActor        AuditLog[]           @relation("AuditActor")
   auditLogsAsSubject      AuditLog[]           @relation("AuditSubject")
   aiUsageLogs             AiUsageLog[]
+  oneTimePayments         OneTimePayment[]  @relation("UserOneTimePayments")
+  wallet                  UserWallet?
+  walletTransactions      WalletTransaction[]
+  dtmSessions             DtmExamSession[]
 
   @@index([role, createdAt])
   @@index([centerId])
@@ -169,13 +194,14 @@ model ExamEntitlement {
   id              String    @id @default(uuid())
   userId          String
   examId          String
-  manualPaymentId String   @unique
+  manualPaymentId String?  @unique
+  paymentSource   String   @default("manual")
   consumedAt      DateTime?
   createdAt       DateTime  @default(now()) @map("created_at")
 
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exam    Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
-  payment ManualExamPayment @relation(fields: [manualPaymentId], references: [id], onDelete: Cascade)
+  payment ManualExamPayment? @relation(fields: [manualPaymentId], references: [id], onDelete: Cascade)
 
   @@index([userId, examId, consumedAt])
   @@map("exam_entitlements")
@@ -243,6 +269,101 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameUz      String?
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subjects Subject[]
+
+  @@index([isActive, order])
+  @@map("categories")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  nameUz      String?
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  categoryId  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category   Category? @relation(fields: [categoryId], references: [id])
+  exams      Exam[]
+  questionBank QuestionBankItem[]
+
+  @@index([isActive, order])
+  @@index([categoryId])
+  @@map("subjects")
+}
+
+model QuestionBankItem {
+  id          String   @id @default(uuid())
+  subjectId   String
+  question    String   @db.Text
+  type        QuestionType @default(MCQ)
+  options     Json?
+  answer      String?
+  explanation String?  @db.Text
+  imageUrl    String?
+  difficulty  Int      @default(1)
+  topic       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId, topic])
+  @@index([subjectId, difficulty])
+  @@map("question_bank_items")
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  type      String   @default("string")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model OneTimePayment {
+  id              String               @id @default(uuid())
+  userId          String
+  examId          String
+  amount          Int
+  currency        String               @default("UZS")
+  status          OneTimePaymentStatus @default(PENDING)
+  paymentMethod   String?
+  transactionId   String?
+  screenshotKey   String?
+  reviewerId      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  user User @relation("UserOneTimePayments", fields: [userId], references: [id], onDelete: Cascade)
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([userId, examId])
+  @@index([status, createdAt])
+  @@map("one_time_payments")
+}
+
 model Exam {
   id              String   @id @default(uuid())
   title           String
@@ -251,6 +372,7 @@ model Exam {
   level           String?
   centerId        String?
   createdBy       String
+  subjectId       String?
   requiresPayment Boolean  @default(true)
   priceUzs        Int?
   paymentInstructions String? @db.Text
@@ -258,13 +380,16 @@ model Exam {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   creator            User                 @relation(fields: [createdBy], references: [id])
+  subject            Subject?             @relation(fields: [subjectId], references: [id])
   questions          Question[]
   results            Result[]
   manualExamPayments ManualExamPayment[]
   entitlements       ExamEntitlement[]
+  oneTimePayments    OneTimePayment[]
 
   @@index([type, createdAt])
   @@index([createdBy])
+  @@index([subjectId])
   @@map("exams")
 }
 
@@ -396,4 +521,77 @@ model Achievement {
 
   @@index([userId])
   @@map("achievements")
+}
+
+/// User wallet for balance-based purchasing
+model UserWallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("user_wallets")
+}
+
+model WalletTransaction {
+  id            String                @id @default(uuid())
+  walletId      String
+  userId        String
+  type          WalletTransactionType
+  amount        Int
+  description   String?
+  examId        String?
+  referenceId   String?
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  wallet UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([userId, type])
+  @@map("wallet_transactions")
+}
+
+/// DTM block test session - groups multiple subject blocks into one timed exam
+model DtmExamSession {
+  id              String           @id @default(uuid())
+  userId          String
+  title           String
+  totalDuration   Int              @default(10800)
+  status          DtmSessionStatus @default(IN_PROGRESS)
+  startedAt       DateTime         @default(now()) @map("started_at")
+  completedAt     DateTime?        @map("completed_at")
+  totalScore      Float?           @default(0)
+  maxScore        Float?           @default(0)
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blocks DtmExamBlock[]
+
+  @@index([userId, status])
+  @@map("dtm_exam_sessions")
+}
+
+/// Individual subject block within a DTM session
+model DtmExamBlock {
+  id            String   @id @default(uuid())
+  sessionId     String
+  subjectName   String
+  blockOrder    Int      @default(1)
+  questions     Json
+  answers       Json?
+  score         Float?   @default(0)
+  maxScore      Float?   @default(0)
+  correctCount  Int?     @default(0)
+  totalCount    Int?     @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  session DtmExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, blockOrder])
+  @@map("dtm_exam_blocks")
 }

@@ -19,6 +19,7 @@ export class ExamsController {
       type: string;
       duration: number;
       level?: string;
+      subjectId?: string;
       requiresPayment?: boolean;
       priceUzs?: number;
       paymentInstructions?: string;
@@ -31,8 +32,8 @@ export class ExamsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Query('type') type?: string) {
-    return this.examsService.findAll(type as any);
+  findAll(@Query('type') type?: string, @Query('subjectId') subjectId?: string) {
+    return this.examsService.findAll(type as any, subjectId);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -480,4 +480,174 @@ Faqat JSON: currentLevel (CEFR), targetLevel, weakSkills (string[]), studyPlan: 
     });
     return parsed;
   }
+
+  /**
+   * Analyze exam errors for any subject — explains mistakes in Uzbek
+   * and provides personalized recommendations.
+   */
+  async analyzeExamErrors(
+    userId: string,
+    dto: {
+      subjectName: string;
+      questions: { question: string; userAnswer: string; correctAnswer: string; topic?: string }[];
+    },
+  ) {
+    if (!dto.questions.length) {
+      throw new BadRequestException('Kamida bitta savol kerak');
+    }
+
+    const wrongAnswers = dto.questions.filter(
+      (q) => q.userAnswer !== q.correctAnswer,
+    );
+
+    if (wrongAnswers.length === 0) {
+      return {
+        subjectName: dto.subjectName,
+        totalQuestions: dto.questions.length,
+        wrongCount: 0,
+        explanations: [],
+        recommendations: [],
+        summaryUz: "Tabriklaymiz! Barcha savollarga to'g'ri javob berdingiz!",
+      };
+    }
+
+    const topicCounts: Record<string, number> = {};
+    for (const q of wrongAnswers) {
+      const t = q.topic || 'umumiy';
+      topicCounts[t] = (topicCounts[t] || 0) + 1;
+    }
+
+    const system = `Sen ${dto.subjectName} fani bo'yicha tajribali o'qituvchisan.
+Talabaning xato javoblarini tahlil qil va o'zbek tilida tushuntir.
+
+Faqat JSON qaytaring:
+{
+  "explanations": [
+    {
+      "question": "savol matni",
+      "userAnswer": "talaba javobi",
+      "correctAnswer": "to'g'ri javob",
+      "explanationUz": "bu savolning yechilish yo'lini batafsil tushuntiring (o'zbek tilida, kamida 2-3 jumla)"
+    }
+  ],
+  "recommendations": [
+    "Tavsiya 1 (o'zbek tilida, aniq va foydali)",
+    "Tavsiya 2"
+  ],
+  "summaryUz": "Umumiy xulosa (o'zbek tilida, 2-3 jumla)",
+  "weakTopics": ["mavzu1", "mavzu2"]
+}
+
+Har bir xato savolni batafsil tushuntirib bering. Tavsiyalar aniq bo'lsin, masalan: "Geometriya bo'limida burchaklar mavzusiga ko'proq e'tibor bering".`;
+
+    const userPrompt = `Fan: ${dto.subjectName}
+Jami savollar: ${dto.questions.length}
+Xato javoblar soni: ${wrongAnswers.length}
+Mavzular bo'yicha xatolar: ${JSON.stringify(topicCounts)}
+
+Xato javoblar:
+${JSON.stringify(wrongAnswers.slice(0, 20), null, 2)}`;
+
+    const { parsed, usage, latencyMs, model } = await this.groq.chatJson<{
+      explanations: { question: string; userAnswer: string; correctAnswer: string; explanationUz: string }[];
+      recommendations: string[];
+      summaryUz: string;
+      weakTopics: string[];
+    }>({
+      system,
+      user: userPrompt,
+      maxTokens: 3000,
+      temperature: 0.3,
+    });
+
+    await this.logUsage({
+      userId,
+      endpoint: 'ai.exam-errors',
+      model,
+      inputTokens: usage.input,
+      outputTokens: usage.output,
+      latencyMs,
+    });
+
+    await this.prisma.aiReport.create({
+      data: {
+        userId,
+        kind: 'EXAM_ERROR_ANALYSIS',
+        model,
+        tokensUsed: (usage.input ?? 0) + (usage.output ?? 0),
+        payload: {
+          subjectName: dto.subjectName,
+          totalQuestions: dto.questions.length,
+          wrongCount: wrongAnswers.length,
+          weakTopics: parsed.weakTopics,
+        },
+      },
+    });
+
+    return {
+      subjectName: dto.subjectName,
+      totalQuestions: dto.questions.length,
+      wrongCount: wrongAnswers.length,
+      ...parsed,
+    };
+  }
+
+  /**
+   * Generate subject-specific study recommendations in Uzbek
+   */
+  async generateSubjectRecommendations(
+    userId: string,
+    dto: {
+      subjectName: string;
+      recentScores: { score: number; maxScore: number; topic?: string; date?: string }[];
+    },
+  ) {
+    const system = `Sen ${dto.subjectName} fani bo'yicha ta'lim maslahatchisan.
+Talabaning so'nggi natijalarini tahlil qilib, o'zbek tilida foydali tavsiyalar ber.
+
+Faqat JSON qaytaring:
+{
+  "overallAssessmentUz": "Umumiy baholash (o'zbek tilida, 3-4 jumla)",
+  "strengths": ["Kuchli tomon 1", "Kuchli tomon 2"],
+  "weaknesses": ["Zaif tomon 1", "Zaif tomon 2"],
+  "recommendations": [
+    {
+      "titleUz": "Tavsiya sarlavhasi",
+      "descriptionUz": "Batafsil tavsiya (2-3 jumla)",
+      "priority": "high|medium|low"
+    }
+  ],
+  "studyPlanUz": "Qisqacha o'qish rejasi (3-5 jumla)"
+}`;
+
+    const userPrompt = `Fan: ${dto.subjectName}
+So'nggi natijalar: ${JSON.stringify(dto.recentScores, null, 2)}`;
+
+    const { parsed, usage, latencyMs, model } = await this.groq.chatJson<{
+      overallAssessmentUz: string;
+      strengths: string[];
+      weaknesses: string[];
+      recommendations: { titleUz: string; descriptionUz: string; priority: string }[];
+      studyPlanUz: string;
+    }>({
+      system,
+      user: userPrompt,
+      maxTokens: 2000,
+      temperature: 0.35,
+    });
+
+    await this.logUsage({
+      userId,
+      endpoint: 'ai.subject-recommendations',
+      model,
+      inputTokens: usage.input,
+      outputTokens: usage.output,
+      latencyMs,
+    });
+
+    return {
+      subjectName: dto.subjectName,
+      ...parsed,
+    };
+  }
 }

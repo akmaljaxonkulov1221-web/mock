@@ -74,4 +74,32 @@ export class AiController {
   ceFrPrediction(@CurrentUser('id') userId: string, @Body() dto: { text: string }) {
     return this.aiService.ceFrPrediction(userId, dto.text);
   }
+
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @UseGuards(JwtAuthGuard)
+  @Post('analyze-errors')
+  analyzeExamErrors(
+    @CurrentUser('id') userId: string,
+    @Body()
+    dto: {
+      subjectName: string;
+      questions: { question: string; userAnswer: string; correctAnswer: string; topic?: string }[];
+    },
+  ) {
+    return this.aiService.analyzeExamErrors(userId, dto);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @UseGuards(JwtAuthGuard)
+  @Post('subject-recommendations')
+  subjectRecommendations(
+    @CurrentUser('id') userId: string,
+    @Body()
+    dto: {
+      subjectName: string;
+      recentScores: { score: number; maxScore: number; topic?: string; date?: string }[];
+    },
+  ) {
+    return this.aiService.generateSubjectRecommendations(userId, dto);
+  }
 }

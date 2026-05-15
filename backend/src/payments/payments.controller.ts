@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -10,21 +17,66 @@ export class PaymentsController {
   constructor(private paymentsService: PaymentsService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Post('one-time')
+  createOneTimePayment(
+    @CurrentUser('id') userId: string,
+    @Body()
+    dto: {
+      examId: string;
+      amount: number;
+      currency?: string;
+      paymentMethod?: string;
+      screenshotKey?: string;
+    },
+  ) {
+    return this.paymentsService.createOneTimePayment({ userId, ...dto });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('my-payments')
+  getUserPayments(@CurrentUser('id') userId: string) {
+    return this.paymentsService.getUserPayments(userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('pending')
+  getAllPendingPayments() {
+    return this.paymentsService.getAllPendingPayments();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('all')
+  getAllPayments() {
+    return this.paymentsService.getAllPayments();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Post(':id/approve')
+  approvePayment(
+    @Param('id') id: string,
+    @CurrentUser('id') reviewerId: string,
+  ) {
+    return this.paymentsService.approvePayment(id, reviewerId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Post(':id/reject')
+  rejectPayment(
+    @Param('id') id: string,
+    @CurrentUser('id') reviewerId: string,
+    @Body() dto: { reason?: string },
+  ) {
+    return this.paymentsService.rejectPayment(id, reviewerId, dto.reason);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('subscription')
   getSubscription(@CurrentUser('id') userId: string) {
     return this.paymentsService.getSubscription(userId);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('upgrade')
-  upgradePlan(@CurrentUser('id') userId: string, @Body() dto: { plan: 'PRO' | 'ENTERPRISE' }) {
-    return this.paymentsService.upgradePlan(userId, dto.plan);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('cancel')
-  cancelSubscription(@CurrentUser('id') userId: string) {
-    return this.paymentsService.cancelSubscription(userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,5 +84,19 @@ export class PaymentsController {
   @Get('subscriptions/all')
   getAllSubscriptions() {
     return this.paymentsService.getAllSubscriptions();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('stats')
+  getPaymentStats() {
+    return this.paymentsService.getPaymentStats();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('purchases')
+  getUserPurchases() {
+    return this.paymentsService.getUserPurchases();
   }
 }

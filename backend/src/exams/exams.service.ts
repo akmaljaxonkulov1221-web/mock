@@ -20,6 +20,7 @@ export class ExamsService {
     duration: number;
     level?: string;
     createdBy: string;
+    subjectId?: string;
     requiresPayment?: boolean;
     priceUzs?: number;
     paymentInstructions?: string;
@@ -32,6 +33,7 @@ export class ExamsService {
         duration: dto.duration,
         level: dto.level,
         createdBy: dto.createdBy,
+        subjectId: dto.subjectId,
         requiresPayment: dto.requiresPayment ?? true,
         priceUzs: dto.priceUzs,
         paymentInstructions: dto.paymentInstructions,
@@ -51,11 +53,16 @@ export class ExamsService {
     return exam;
   }
 
-  async findAll(type?: ExamType) {
-    const where = type ? { type } : {};
+  async findAll(type?: ExamType, subjectId?: string) {
+    const where: Record<string, unknown> = {};
+    if (type) where.type = type;
+    if (subjectId) where.subjectId = subjectId;
     return this.prisma.exam.findMany({
       where,
-      include: { questions: { orderBy: { order: 'asc' } } },
+      include: {
+        questions: { orderBy: { order: 'asc' } },
+        subject: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
