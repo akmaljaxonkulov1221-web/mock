@@ -19,22 +19,22 @@ export class WalletsController {
 
   @Get('balance')
   getBalance(@Request() req: any) {
-    return this.walletsService.getBalance(req.user.sub);
+    return this.walletsService.getBalance(req.user.id);
   }
 
   @Get('transactions')
   getTransactions(@Request() req: any) {
-    return this.walletsService.getTransactions(req.user.sub);
+    return this.walletsService.getTransactions(req.user.id);
   }
 
   @Post('top-up')
   topUp(@Request() req: any, @Body() dto: { amount: number; referenceId?: string }) {
-    return this.walletsService.topUp(req.user.sub, dto.amount, dto.referenceId);
+    return this.walletsService.topUp(req.user.id, dto.amount, dto.referenceId);
   }
 
   @Post('purchase/:examId')
   purchaseExam(@Request() req: any, @Param('examId') examId: string) {
-    return this.walletsService.purchaseExam(req.user.sub, examId);
+    return this.walletsService.purchaseExam(req.user.id, examId);
   }
 
   @Get('admin/all')
@@ -52,6 +52,6 @@ export class WalletsController {
     @Body() dto: { amount: number },
     @Request() req: any,
   ) {
-    return this.walletsService.adminTopUp(userId, dto.amount, req.user.sub);
+    return this.walletsService.adminTopUp(userId, dto.amount, req.user.id);
   }
 }

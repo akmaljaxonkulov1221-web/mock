@@ -34,7 +34,7 @@ export class DtmTestsController {
       }[];
     },
   ) {
-    return this.dtmTestsService.createSession(req.user.sub, dto);
+    return this.dtmTestsService.createSession(req.user.id, dto);
   }
 
   @Post('sessions/from-bank')
@@ -47,17 +47,17 @@ export class DtmTestsController {
       blocks: { subjectId: string; subjectName: string; count: number }[];
     },
   ) {
-    return this.dtmTestsService.createFromQuestionBank(req.user.sub, dto);
+    return this.dtmTestsService.createFromQuestionBank(req.user.id, dto);
   }
 
   @Get('sessions')
   getUserSessions(@Request() req: any) {
-    return this.dtmTestsService.getUserSessions(req.user.sub);
+    return this.dtmTestsService.getUserSessions(req.user.id);
   }
 
   @Get('sessions/:sessionId')
   getSession(@Param('sessionId') sessionId: string, @Request() req: any) {
-    return this.dtmTestsService.getSession(sessionId, req.user.sub);
+    return this.dtmTestsService.getSession(sessionId, req.user.id);
   }
 
   @Post('sessions/:sessionId/blocks/:blockId/submit')
@@ -70,7 +70,7 @@ export class DtmTestsController {
     return this.dtmTestsService.submitBlock(
       sessionId,
       blockId,
-      req.user.sub,
+      req.user.id,
       dto.answers,
     );
   }
@@ -80,7 +80,7 @@ export class DtmTestsController {
     @Param('sessionId') sessionId: string,
     @Request() req: any,
   ) {
-    return this.dtmTestsService.completeSession(sessionId, req.user.sub);
+    return this.dtmTestsService.completeSession(sessionId, req.user.id);
   }
 
   @Get('admin/sessions')
