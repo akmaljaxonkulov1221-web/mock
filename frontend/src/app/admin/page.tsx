@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import api from '@/lib/api';
+import Link from 'next/link';
 import {
   Users,
   Building2,
@@ -21,10 +22,11 @@ import {
   Wallet,
   FileQuestion,
   BarChart3,
+  FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-type Tab = 'overview' | 'payments' | 'settings' | 'subjects' | 'categories' | 'questions' | 'wallets' | 'ai' | 'integrity';
+type Tab = 'overview' | 'payments' | 'settings' | 'subjects' | 'categories' | 'questions' | 'wallets' | 'ai' | 'integrity' | 'pdf-import';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('overview');
@@ -369,6 +371,7 @@ export default function AdminPage() {
     categories: 'Kategoriyalar',
     subjects: 'Fanlar',
     questions: 'Savollar bazasi',
+    'pdf-import': 'PDF Import',
     wallets: 'Hamyon',
     settings: 'Sozlamalar',
     ai: 'AI usage',
@@ -1111,6 +1114,24 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* PDF IMPORT TAB */}
+          {tab === 'pdf-import' && (
+            <div className="glass-dark rounded-2xl p-6">
+              <div className="mb-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-3">
+                <FileText size={20} className="text-orange-400 shrink-0" />
+                <div>
+                  <p className="text-white font-medium">PDF orqali test yuklash</p>
+                  <p className="text-gray-400 text-sm">Bu funksiya alohida sahifada ochiladi.</p>
+                </div>
+                <Link href="/admin/pdf-import" className="ml-auto">
+                  <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-700 text-white text-sm font-medium hover:opacity-90 transition whitespace-nowrap">
+                    PDF Import sahifasiga o'tish →
+                  </button>
+                </Link>
               </div>
             </div>
           )}

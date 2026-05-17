@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Mic, PenLine, BarChart3, Trophy, Route, LogOut, Menu, X, Bell, LineChart, UserCircle } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Mic, PenLine, BarChart3, Trophy, Route, LogOut, Menu, X, Bell, LineChart, UserCircle, GraduationCap } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/profile', icon: UserCircle, label: 'Profile' },
   { href: '/exams', icon: BookOpen, label: 'Mock Exams' },
+  { href: '/dtm', icon: GraduationCap, label: 'DTM Testlar' },
   { href: '/ai-speaking', icon: Mic, label: 'AI Speaking' },
   { href: '/ai-writing', icon: PenLine, label: 'AI Writing' },
   { href: '/results', icon: BarChart3, label: 'Results' },

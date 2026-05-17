@@ -20,6 +20,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { QuestionBankModule } from './question-bank/question-bank.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { DtmTestsModule } from './dtm-tests/dtm-tests.module';
+import { PdfImportModule } from './pdf-import/pdf-import.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { DtmTestsModule } from './dtm-tests/dtm-tests.module';
     QuestionBankModule,
     WalletsModule,
     DtmTestsModule,
+    PdfImportModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
